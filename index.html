@@ -3,131 +3,268 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NorthSky Live Auction</title>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <title>NorthSky Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background: #0b1120; color: #eef2ff; font-family: system-ui; padding: 2rem; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    h1 { text-align: center; margin-bottom: 2rem; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
-    .card { background: #111827cc; backdrop-filter: blur(8px); border-radius: 1.5rem; padding: 1.5rem; border: 1px solid #334155; }
-    input, select, button { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border-radius: 0.75rem; border: none; }
-    input, select { background: #0f172a; color: white; border: 1px solid #334155; }
-    button { background: #2dd4bf; color: #020617; font-weight: bold; cursor: pointer; }
-    button:hover { background: #14b8a6; }
-    .bid-row { display: flex; gap: 0.5rem; }
-    .bid-row button { width: auto; }
-    .bid-history { max-height: 200px; overflow-y: auto; font-size: 0.8rem; margin-top: 1rem; }
-    .bid-item { border-bottom: 1px solid #334155; padding: 0.3rem 0; }
-    .highlight { color: #2dd4bf; font-weight: bold; }
-    .timer { color: #f59e0b; font-family: monospace; font-size: 1.2rem; }
-    .flex { display: flex; justify-content: space-between; margin: 0.5rem 0; }
-    .status { font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem; }
+    body { background: #0f172a; }
+    .card-hover:hover { transform: translateY(-2px); transition: all 0.2s ease; }
   </style>
 </head>
-<body>
-<div class="container">
-  <h1>🏛️ NorthSky Live Auction</h1>
-  <div class="grid">
-    <div class="card">
-      <h2>🏠 New Lead</h2>
-      <input type="text" id="leadName" placeholder="Full name">
-      <input type="text" id="leadContact" placeholder="Phone / Email">
-      <input type="text" id="leadPostal" placeholder="Postal code">
-      <select id="leadService">
-        <option>Roof inspection</option>
-        <option>Leak check</option>
-        <option>Insurance claim</option>
-      </select>
-      <button id="createLeadBtn">✨ Start Auction (60s)</button>
-      <div id="leadStatus" class="status"></div>
-    </div>
-    <div class="card">
-      <h2>🔨 Contractor</h2>
-      <input type="text" id="contractorId" placeholder="Your ID">
-      <input type="text" id="cityName" placeholder="City" value="Calgary">
-      <button id="joinBtn">🌍 Join Market</button>
-      <div id="connectionStatus" class="status">⚪ Not connected</div>
-      <div id="auctionInfo" class="flex" style="margin-top:1rem;">💡 No active auction</div>
-      <div id="bidControls" style="display:none;">
-        <div class="bid-row">
-          <input type="number" id="bidAmount" placeholder="Your bid $" step="10">
-          <button id="placeBidBtn">💰 Bid</button>
-        </div>
-        <div id="bidFeedback" class="status"></div>
+<body class="p-6 text-gray-200">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
+          🏛️ NorthSky Admin Panel
+        </h1>
+        <p class="text-gray-400 mt-1">Full control over auctions, leads, and contractors</p>
       </div>
-      <div class="bid-history" id="bidHistory"><div class="bid-item">⏳ No bids yet</div></div>
+      <button id="refreshBtn" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg flex items-center gap-2">
+        <i class="fas fa-sync-alt"></i> Refresh Data
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-5 border border-slate-700 card-hover">
+        <div class="flex justify-between items-start">
+          <div><i class="fas fa-tag text-2xl text-cyan-400"></i></div>
+          <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-full">Today</span>
+        </div>
+        <p class="text-3xl font-bold mt-3" id="statLeads">0</p>
+        <p class="text-gray-400 text-sm">Total Leads</p>
+      </div>
+      <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-5 border border-slate-700 card-hover">
+        <i class="fas fa-gavel text-2xl text-orange-400"></i>
+        <p class="text-3xl font-bold mt-3" id="statActive">0</p>
+        <p class="text-gray-400 text-sm">Active Auctions</p>
+      </div>
+      <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-5 border border-slate-700 card-hover">
+        <i class="fas fa-dollar-sign text-2xl text-green-400"></i>
+        <p class="text-3xl font-bold mt-3" id="statHighest">$0</p>
+        <p class="text-gray-400 text-sm">Highest Bid Today</p>
+      </div>
+      <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-5 border border-slate-700 card-hover">
+        <i class="fas fa-users text-2xl text-purple-400"></i>
+        <p class="text-3xl font-bold mt-3" id="statContractors">0</p>
+        <p class="text-gray-400 text-sm">Active Contractors</p>
+      </div>
+    </div>
+
+    <!-- Two column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left: Leads Table -->
+      <div class="lg:col-span-2 bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold"><i class="fas fa-list-ul mr-2 text-cyan-400"></i>Recent Leads</h2>
+          <button id="addMockLead" class="text-sm bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded-lg">+ Mock Lead</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-gray-400 border-b border-slate-700">
+              <tr><th class="text-left py-2">ID</th><th class="text-left">Name/Contact</th><th class="text-left">Service</th><th class="text-left">Status</th><th class="text-left">Highest Bid</th><th class="text-left">Action</th></tr>
+            </thead>
+            <tbody id="leadsTableBody">
+              <tr><td colspan="6" class="text-center py-6 text-gray-500">Loading mock data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: Contractor & Bids -->
+      <div class="space-y-6">
+        <!-- Active Auctions Panel -->
+        <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
+          <h2 class="text-xl font-semibold mb-3"><i class="fas fa-fire mr-2 text-orange-400"></i>Live Auction</h2>
+          <div id="activeAuctionCard" class="bg-black/30 rounded-xl p-4">
+            <p class="text-gray-400">No active auction</p>
+          </div>
+          <div class="mt-4">
+            <label class="text-xs text-gray-400">Force close auction (admin)</label>
+            <button id="forceCloseBtn" class="w-full mt-1 bg-red-800/50 hover:bg-red-700 text-red-200 rounded-lg py-2 text-sm">Close Current Auction</button>
+          </div>
+        </div>
+
+        <!-- Bid History -->
+        <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
+          <h2 class="text-xl font-semibold mb-3"><i class="fas fa-history mr-2 text-teal-400"></i>Recent Bids</h2>
+          <div id="bidHistoryList" class="space-y-2 max-h-64 overflow-y-auto text-sm">
+            <div class="text-gray-500 text-center py-2">No bids yet</div>
+          </div>
+        </div>
+
+        <!-- Contractor List -->
+        <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
+          <h2 class="text-xl font-semibold mb-3"><i class="fas fa-user-hard-hat mr-2 text-purple-400"></i>Contractors Online</h2>
+          <div id="contractorList" class="space-y-2 max-h-48 overflow-y-auto">
+            <div class="text-gray-500 text-center">No contractors connected</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-<script>
-  let socket, contractorId, currentCity, activeLeadId, expiresAt, currentHighestBid = 0, timerInterval;
-  const contractorInput = document.getElementById('contractorId');
-  const cityInput = document.getElementById('cityName');
-  const joinBtn = document.getElementById('joinBtn');
-  const createLeadBtn = document.getElementById('createLeadBtn');
-  const leadStatus = document.getElementById('leadStatus');
-  const connectionStatus = document.getElementById('connectionStatus');
-  const auctionInfo = document.getElementById('auctionInfo');
-  const bidControls = document.getElementById('bidControls');
-  const bidAmount = document.getElementById('bidAmount');
-  const placeBidBtn = document.getElementById('placeBidBtn');
-  const bidFeedback = document.getElementById('bidFeedback');
-  const bidHistory = document.getElementById('bidHistory');
 
-  function addBid(bidder, amount) {
-    const div = document.createElement('div');
-    div.className = 'bid-item';
-    div.innerHTML = `💰 <strong>${escapeHtml(bidder)}</strong> – $${amount.toFixed(2)}`;
-    bidHistory.prepend(div);
-    if (bidHistory.children.length > 15) bidHistory.removeChild(bidHistory.lastChild);
-  }
-  function clearBids() { bidHistory.innerHTML = '<div class="bid-item">⏳ No bids yet</div>'; }
-  function escapeHtml(s) { return s.replace(/[&<>]/g, function(m){ return m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'; }); }
-  function updateUI() {
-    if (!activeLeadId) { auctionInfo.innerHTML = '💡 No active auction'; bidControls.style.display = 'none'; return; }
-    const left = expiresAt ? Math.max(0, Math.floor((expiresAt - Date.now())/1000)) : 0;
-    auctionInfo.innerHTML = `<div class="flex"><strong>Lead:</strong> ${activeLeadId.slice(0,8)}...</div><div class="flex"><strong>Highest bid:</strong> <span class="highlight">$${currentHighestBid.toFixed(2)}</span></div><div class="flex"><strong>Time left:</strong> <span class="timer">${left}s</span></div>`;
-    bidControls.style.display = left>0 ? 'block' : 'none';
-  }
-  function startTimer() { if(timerInterval) clearInterval(timerInterval); timerInterval = setInterval(updateUI, 500); }
+  <script>
+    // ---------- MOCK DATA (replace with real API later) ----------
+    let leads = [
+      { id: "LD-1001", name: "John Davies", contact: "403-555-1234", service: "Roof inspection", status: "active", highestBid: 340, city: "Calgary" },
+      { id: "LD-1002", name: "Sarah Chen", contact: "sarah.chen@mail.com", service: "Leak check", status: "active", highestBid: 210, city: "Edmonton" },
+      { id: "LD-1003", name: "Mike O'Brien", contact: "587-222-7890", service: "Insurance claim", status: "closed", highestBid: 620, winner: "Rooftop Pros" },
+    ];
+    let bids = [
+      { leadId: "LD-1001", contractor: "Apex Roofing", amount: 340, timestamp: Date.now() - 120000 },
+      { leadId: "LD-1001", contractor: "Skyline", amount: 280, timestamp: Date.now() - 240000 },
+      { leadId: "LD-1002", contractor: "Peak Contractors", amount: 210, timestamp: Date.now() - 300000 },
+      { leadId: "LD-1003", contractor: "Rooftop Pros", amount: 620, timestamp: Date.now() - 3600000 },
+    ];
+    let contractors = [
+      { id: "CON-001", name: "Apex Roofing", city: "Calgary", status: "online" },
+      { id: "CON-002", name: "Skyline", city: "Calgary", status: "online" },
+      { id: "CON-003", name: "Peak Contractors", city: "Edmonton", status: "idle" },
+    ];
+    let activeLeadId = "LD-1001"; // simulate active auction
 
-  function initSocket() {
-    socket = io();
-    socket.on('connect', () => { connectionStatus.innerHTML = '🟢 Connected'; if(currentCity && contractorId) socket.emit('join_city', currentCity); });
-    socket.on('disconnect', () => connectionStatus.innerHTML = '⚪ Disconnected');
-    socket.on('auction_started', (data) => { activeLeadId = data.leadId; expiresAt = data.expiresAt; currentHighestBid = 0; clearBids(); updateUI(); startTimer(); bidFeedback.innerHTML = 'New auction!'; });
-    socket.on('new_bid', (data) => { if(data.leadId === activeLeadId) { currentHighestBid = data.highestBid; updateUI(); addBid(data.contractorId, data.highestBid); } });
-    socket.on('auction_closed', (data) => { if(data.leadId === activeLeadId) { activeLeadId = null; updateUI(); bidFeedback.innerHTML = `Auction closed. Winner: ${data.winnerId}`; } });
-    socket.on('bid_error', (err) => { bidFeedback.innerHTML = `❌ ${err.message}`; setTimeout(()=>bidFeedback.innerHTML='',2000); });
-  }
+    // Helper: update all UI
+    function refreshDashboard() {
+      // stats
+      document.getElementById('statLeads').innerText = leads.length;
+      const activeCount = leads.filter(l => l.status === 'active').length;
+      document.getElementById('statActive').innerText = activeCount;
+      const highestBid = Math.max(...bids.map(b => b.amount), 0);
+      document.getElementById('statHighest').innerText = `$${highestBid}`;
+      document.getElementById('statContractors').innerText = contractors.filter(c => c.status === 'online').length;
 
-  joinBtn.onclick = () => { contractorId = contractorInput.value.trim(); currentCity = cityInput.value.trim(); if(!contractorId || !currentCity) return alert('Enter ID and city'); if(!socket || !socket.connected) initSocket(); else socket.emit('join_city', currentCity); localStorage.setItem('contractor', contractorId); localStorage.setItem('city', currentCity); };
-  createLeadBtn.onclick = async () => {
-    const name = document.getElementById('leadName').value.trim();
-    const contact = document.getElementById('leadContact').value.trim();
-    const postal = document.getElementById('leadPostal').value.trim();
-    const service = document.getElementById('leadService').value;
-    if(!contact) return leadStatus.innerText = '⚠️ Contact required';
-    leadStatus.innerText = 'Creating...';
-    try {
-      const res = await fetch('/lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, contact, postalCode:postal, service, city:currentCity || 'unknown' }) });
-      const data = await res.json();
-      if(data.success) leadStatus.innerText = `✅ Lead created! Auction started.`;
-      else throw new Error(data.error);
-    } catch(e) { leadStatus.innerText = `❌ Error: ${e.message}`; }
-  };
-  placeBidBtn.onclick = () => {
-    if(!socket || !activeLeadId) return bidFeedback.innerText = 'No active auction';
-    const amount = parseFloat(bidAmount.value);
-    if(isNaN(amount) || amount <= currentHighestBid) return bidFeedback.innerText = `Bid must be > $${currentHighestBid}`;
-    socket.emit('bid', { leadId: activeLeadId, contractorId, amount });
-    bidAmount.value = '';
-  };
-  if(localStorage.getItem('contractor')) contractorInput.value = localStorage.getItem('contractor');
-  if(localStorage.getItem('city')) cityInput.value = localStorage.getItem('city');
-</script>
+      // leads table
+      const tbody = document.getElementById('leadsTableBody');
+      tbody.innerHTML = '';
+      leads.forEach(lead => {
+        const row = tbody.insertRow();
+        row.className = 'border-b border-slate-700/50';
+        row.innerHTML = `
+          <td class="py-2 font-mono text-xs">${lead.id}</td>
+          <td><div class="font-medium">${escapeHtml(lead.name)}</div><div class="text-xs text-gray-400">${escapeHtml(lead.contact)}</div></td>
+          <td>${lead.service}</td>
+          <td><span class="px-2 py-0.5 rounded-full text-xs ${lead.status === 'active' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}">${lead.status}</span></td>
+          <td>$${lead.highestBid || 0}</td>
+          <td><button class="text-cyan-400 hover:text-cyan-300 text-xs view-lead" data-id="${lead.id}"><i class="fas fa-eye"></i> details</button></td>
+        `;
+      });
+      // bind view lead
+      document.querySelectorAll('.view-lead').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.getAttribute('data-id');
+          alert(`Lead ${id}\nFull details: ${JSON.stringify(leads.find(l=>l.id===id), null, 2)}`);
+        });
+      });
+
+      // active auction display
+      const activeLead = leads.find(l => l.id === activeLeadId && l.status === 'active');
+      const activeAuctionDiv = document.getElementById('activeAuctionCard');
+      if (activeLead) {
+        const leadBids = bids.filter(b => b.leadId === activeLeadId);
+        const topBid = leadBids.length ? Math.max(...leadBids.map(b=>b.amount)) : 0;
+        activeAuctionDiv.innerHTML = `
+          <div class="flex justify-between"><span class="text-gray-300">Lead:</span><span class="font-mono">${activeLead.id}</span></div>
+          <div class="flex justify-between mt-1"><span>Service:</span><span>${activeLead.service}</span></div>
+          <div class="flex justify-between mt-1"><span>Highest bid:</span><span class="text-green-400 font-bold">$${topBid}</span></div>
+          <div class="flex justify-between mt-1"><span>Bids placed:</span><span>${leadBids.length}</span></div>
+          <div class="mt-3 text-xs text-amber-400"><i class="fas fa-hourglass-half"></i> Auction ends in 32s (mock)</div>
+        `;
+      } else {
+        activeAuctionDiv.innerHTML = '<p class="text-gray-400">No active auction. Create a lead to start.</p>';
+      }
+
+      // bid history
+      const bidContainer = document.getElementById('bidHistoryList');
+      if (bids.length === 0) {
+        bidContainer.innerHTML = '<div class="text-gray-500 text-center py-2">No bids yet</div>';
+      } else {
+        bidContainer.innerHTML = bids.slice().reverse().map(b => `
+          <div class="flex justify-between text-sm border-b border-slate-700/50 pb-1">
+            <span><span class="text-cyan-300">${escapeHtml(b.contractor)}</span> on ${b.leadId}</span>
+            <span class="font-mono text-green-300">$${b.amount}</span>
+          </div>
+        `).join('');
+      }
+
+      // contractor list
+      const contractorDiv = document.getElementById('contractorList');
+      if (contractors.length === 0) {
+        contractorDiv.innerHTML = '<div class="text-gray-500 text-center">No contractors connected</div>';
+      } else {
+        contractorDiv.innerHTML = contractors.map(c => `
+          <div class="flex justify-between items-center">
+            <div><i class="fas fa-user-circle mr-2"></i>${escapeHtml(c.name)}</div>
+            <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${c.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"></span><span class="text-xs">${c.city}</span></div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){return m==='&'?'&amp;':m==='<'?'&lt;':'&gt;';}); }
+
+    // Add mock lead
+    function addMockLead() {
+      const newId = `LD-${Math.floor(Math.random()*9000+2000)}`;
+      const services = ['Roof inspection', 'Leak check', 'Insurance claim'];
+      const newLead = {
+        id: newId,
+        name: `Customer ${Math.floor(Math.random()*100)}`,
+        contact: `${Math.floor(Math.random()*999)}-555-${Math.floor(Math.random()*9999)}`,
+        service: services[Math.floor(Math.random()*3)],
+        status: 'active',
+        highestBid: 0,
+        city: ['Calgary','Edmonton','Vancouver'][Math.floor(Math.random()*3)]
+      };
+      leads.unshift(newLead);
+      activeLeadId = newId; // set as active auction for demo
+      refreshDashboard();
+    }
+
+    // Force close current auction
+    function forceCloseAuction() {
+      const activeLead = leads.find(l => l.id === activeLeadId && l.status === 'active');
+      if (activeLead) {
+        activeLead.status = 'closed';
+        const leadBids = bids.filter(b => b.leadId === activeLeadId);
+        const winnerBid = leadBids.reduce((max, b) => b.amount > max.amount ? b : max, { amount: 0, contractor: 'No bids' });
+        activeLead.winner = winnerBid.contractor;
+        activeLead.highestBid = winnerBid.amount;
+        alert(`Auction closed. Winner: ${winnerBid.contractor} with $${winnerBid.amount}`);
+        activeLeadId = null;
+        refreshDashboard();
+      } else {
+        alert('No active auction to close.');
+      }
+    }
+
+    // Event listeners
+    document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
+    document.getElementById('addMockLead').addEventListener('click', addMockLead);
+    document.getElementById('forceCloseBtn').addEventListener('click', forceCloseAuction);
+
+    // initial load
+    refreshDashboard();
+
+    // Optional: simulate live updates every 10s
+    setInterval(() => {
+      // mock: random new bid on active lead if exists
+      const activeLead = leads.find(l => l.id === activeLeadId && l.status === 'active');
+      if (activeLead && Math.random() > 0.7) {
+        const randomContractor = contractors[Math.floor(Math.random()*contractors.length)];
+        const newBidAmount = (activeLead.highestBid || 100) + Math.floor(Math.random() * 80) + 10;
+        bids.push({
+          leadId: activeLeadId,
+          contractor: randomContractor.name,
+          amount: newBidAmount,
+          timestamp: Date.now()
+        });
+        activeLead.highestBid = newBidAmount;
+        refreshDashboard();
+      }
+    }, 8000);
+  </script>
 </body>
 </html>
