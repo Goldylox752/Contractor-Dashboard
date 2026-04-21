@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NorthSky Admin Panel</title>
+  <title>NorthSky Admin Panel + Lead Store</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -20,7 +20,7 @@
         <h1 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
           🏛️ NorthSky Admin Panel
         </h1>
-        <p class="text-gray-400 mt-1">Live ecosystem data – auctions, leads, contractors</p>
+        <p class="text-gray-400 mt-1">Live auctions + Lead store management</p>
       </div>
       <button id="refreshBtn" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg flex items-center gap-2">
         <i class="fas fa-sync-alt"></i> Refresh Data
@@ -45,55 +45,51 @@
         <p class="text-gray-400 text-sm">Highest Bid Today</p>
       </div>
       <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-5 border border-slate-700 card-hover">
-        <i class="fas fa-users text-2xl text-purple-400"></i>
-        <p class="text-3xl font-bold mt-3" id="statContractors">0</p>
-        <p class="text-gray-400 text-sm">Contractors Online</p>
+        <i class="fas fa-store text-2xl text-amber-400"></i>
+        <p class="text-3xl font-bold mt-3" id="statForSale">0</p>
+        <p class="text-gray-400 text-sm">Leads for Sale</p>
       </div>
     </div>
 
-    <!-- Two column layout -->
+    <!-- Three column layout (leads, auction/bids, lead store) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Left: Leads Table -->
-      <div class="lg:col-span-2 bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
+      <!-- Column 1: Leads Table -->
+      <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold"><i class="fas fa-list-ul mr-2 text-cyan-400"></i>Recent Leads</h2>
           <button id="addRealLead" class="text-sm bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded-lg">+ Real Lead</button>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto max-h-96 overflow-y-auto">
           <table class="w-full text-sm">
-            <thead class="text-gray-400 border-b border-slate-700">
-              <tr><th class="text-left py-2">ID</th><th class="text-left">Name/Contact</th><th class="text-left">Service</th><th class="text-left">Status</th><th class="text-left">Highest Bid</th><th class="text-left">Action</th></tr>
+            <thead class="text-gray-400 border-b border-slate-700 sticky top-0 bg-slate-800/90">
+              <tr><th class="text-left py-2">ID</th><th class="text-left">Name/Contact</th><th class="text-left">Service</th><th class="text-left">Status</th><th class="text-left">Bid/Price</th><th class="text-left">Action</th></tr>
             </thead>
             <tbody id="leadsTableBody">
-              <tr><td colspan="6" class="text-center py-6 text-gray-500">Loading from server...</td></tr>
+              <tr><td colspan="6" class="text-center py-6 text-gray-500">Loading...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Right: Contractor & Bids -->
+      <!-- Column 2: Live Auction + Bid History + Contractors -->
       <div class="space-y-6">
-        <!-- Active Auctions Panel -->
         <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
           <h2 class="text-xl font-semibold mb-3"><i class="fas fa-fire mr-2 text-orange-400"></i>Live Auction</h2>
           <div id="activeAuctionCard" class="bg-black/30 rounded-xl p-4">
             <p class="text-gray-400">No active auction</p>
           </div>
           <div class="mt-4">
-            <label class="text-xs text-gray-400">Force close auction (admin)</label>
-            <button id="forceCloseBtn" class="w-full mt-1 bg-red-800/50 hover:bg-red-700 text-red-200 rounded-lg py-2 text-sm">Close Current Auction</button>
+            <button id="forceCloseBtn" class="w-full bg-red-800/50 hover:bg-red-700 text-red-200 rounded-lg py-2 text-sm">Force Close Auction</button>
           </div>
         </div>
 
-        <!-- Bid History -->
         <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
           <h2 class="text-xl font-semibold mb-3"><i class="fas fa-history mr-2 text-teal-400"></i>Recent Bids</h2>
-          <div id="bidHistoryList" class="space-y-2 max-h-64 overflow-y-auto text-sm">
+          <div id="bidHistoryList" class="space-y-2 max-h-48 overflow-y-auto text-sm">
             <div class="text-gray-500 text-center py-2">No bids yet</div>
           </div>
         </div>
 
-        <!-- Contractor List -->
         <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
           <h2 class="text-xl font-semibold mb-3"><i class="fas fa-user-hard-hat mr-2 text-purple-400"></i>Contractors Online</h2>
           <div id="contractorList" class="space-y-2 max-h-48 overflow-y-auto">
@@ -101,27 +97,40 @@
           </div>
         </div>
       </div>
+
+      <!-- Column 3: Lead Store Management (Fixed Price Sales) -->
+      <div class="bg-slate-800/40 rounded-2xl border border-slate-700 p-5">
+        <h2 class="text-xl font-semibold mb-3"><i class="fas fa-store mr-2 text-amber-400"></i>Lead Store Management</h2>
+        <p class="text-xs text-gray-400 mb-4">Set a fixed price for any lead – contractors can buy instantly without bidding.</p>
+        <div id="forSaleLeadsList" class="space-y-3 max-h-[600px] overflow-y-auto">
+          <div class="text-gray-500 text-center py-4">No leads marked for sale yet.</div>
+        </div>
+        <div class="mt-4 text-xs text-center text-gray-500">
+          <i class="fas fa-credit-card"></i> Contractors will pay via Stripe – you'll receive the money.
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
-    // ---------- REAL BACKEND INTEGRATION ----------
+    // ---------- BACKEND INTEGRATION (same origin assumed) ----------
     let socket = null;
-    let activeLeadId = null; // track current live auction lead ID
+    let activeLeadId = null;
+    let allLeads = [];     // cache for leads
 
-    // Helper: fetch all leads from API
     async function fetchLeads() {
       try {
         const res = await fetch('/api/leads');
         if (!res.ok) throw new Error('Failed to fetch leads');
-        return await res.json();
+        const data = await res.json();
+        allLeads = data;
+        return data;
       } catch (err) {
         console.error('Error fetching leads:', err);
         return [];
       }
     }
 
-    // Helper: fetch all bids
     async function fetchBids() {
       try {
         const res = await fetch('/api/bids');
@@ -133,7 +142,6 @@
       }
     }
 
-    // Helper: fetch online contractors
     async function fetchContractors() {
       try {
         const res = await fetch('/api/contractors');
@@ -145,7 +153,46 @@
       }
     }
 
-    // Render entire dashboard from live data
+    // Mark a lead as "for sale" with a price
+    async function markLeadForSale(leadId, price) {
+      try {
+        const res = await fetch(`/api/leads/${leadId}/set-for-sale`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ price: parseFloat(price), forSale: true })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Lead ${leadId} is now for sale at $${price}`);
+          refreshDashboard();
+        } else {
+          alert('Error: ' + (data.error || 'Unknown'));
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
+    // Remove from sale
+    async function removeFromSale(leadId) {
+      try {
+        const res = await fetch(`/api/leads/${leadId}/set-for-sale`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ forSale: false })
+        });
+        const data = await res.json();
+        if (data.success) {
+          refreshDashboard();
+        } else {
+          alert('Error: ' + (data.error || 'Unknown'));
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
+    // Render entire dashboard
     async function refreshDashboard() {
       const leads = await fetchLeads();
       const bids = await fetchBids();
@@ -157,9 +204,10 @@
       document.getElementById('statActive').innerText = activeAuctions;
       const highestBid = bids.length > 0 ? Math.max(...bids.map(b => b.amount)) : 0;
       document.getElementById('statHighest').innerText = `$${highestBid}`;
-      document.getElementById('statContractors').innerText = contractors.filter(c => c.status === 'online').length;
+      const forSaleCount = leads.filter(l => l.forSale === true).length;
+      document.getElementById('statForSale').innerText = forSaleCount;
 
-      // Render leads table
+      // Leads table (column 1)
       const tbody = document.getElementById('leadsTableBody');
       tbody.innerHTML = '';
       if (leads.length === 0) {
@@ -177,17 +225,16 @@
             <td><button class="text-cyan-400 hover:text-cyan-300 text-xs view-lead" data-id="${lead.id}"><i class="fas fa-eye"></i> details</button></td>
           `;
         });
-        // bind view-lead buttons
         document.querySelectorAll('.view-lead').forEach(btn => {
           btn.addEventListener('click', (e) => {
             const id = btn.getAttribute('data-id');
             const lead = leads.find(l => l.id === id);
-            alert(`Lead ${id}\nName: ${lead.name}\nContact: ${lead.contact}\nService: ${lead.service}\nStatus: ${lead.status}\nHighest Bid: $${lead.highestBid || 0}`);
+            alert(`Lead ${id}\nName: ${lead.name}\nContact: ${lead.contact}\nService: ${lead.service}\nStatus: ${lead.status}\nHighest Bid: $${lead.highestBid || 0}\nFor Sale: ${lead.forSale ? 'Yes at $'+lead.salePrice : 'No'}`);
           });
         });
       }
 
-      // Render bid history
+      // Bid history
       const bidContainer = document.getElementById('bidHistoryList');
       if (bids.length === 0) {
         bidContainer.innerHTML = '<div class="text-gray-500 text-center py-2">No bids yet</div>';
@@ -200,7 +247,7 @@
         `).join('');
       }
 
-      // Render contractor list
+      // Contractors online
       const contractorDiv = document.getElementById('contractorList');
       if (contractors.length === 0) {
         contractorDiv.innerHTML = '<div class="text-gray-500 text-center">No contractors connected</div>';
@@ -212,9 +259,82 @@
           </div>
         `).join('');
       }
+
+      // Lead Store Management (column 3) – show leads that are for sale + controls to add new
+      const storeContainer = document.getElementById('forSaleLeadsList');
+      const leadsForSale = leads.filter(l => l.forSale === true);
+      if (leadsForSale.length === 0) {
+        storeContainer.innerHTML = '<div class="text-gray-500 text-center py-4">No leads marked for sale. Click "Sell" on any lead below.</div>';
+      } else {
+        storeContainer.innerHTML = leadsForSale.map(lead => `
+          <div class="bg-slate-700/30 rounded-xl p-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="font-mono text-xs text-cyan-300">${lead.id}</div>
+                <div class="font-medium">${escapeHtml(lead.name)}</div>
+                <div class="text-xs text-gray-400">${escapeHtml(lead.service)}</div>
+                <div class="text-sm text-green-400 font-bold mt-1">$${lead.salePrice || 0}</div>
+              </div>
+              <button class="remove-from-sale text-red-400 hover:text-red-300 text-sm" data-id="${lead.id}"><i class="fas fa-trash-alt"></i> Remove</button>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">Contact: ${escapeHtml(lead.contact)}</div>
+          </div>
+        `).join('');
+        // bind remove buttons
+        document.querySelectorAll('.remove-from-sale').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-id');
+            removeFromSale(id);
+          });
+        });
+      }
+
+      // Also show a quick "Sell this lead" button under each lead in the leads table? 
+      // We'll add a new column in leads table for "Sell" action.
+      // Re-render leads table with an extra column for sell button.
+      const tbody2 = document.getElementById('leadsTableBody');
+      if (leads.length > 0) {
+        // Clear and rebuild with sell column
+        tbody2.innerHTML = '';
+        leads.forEach(lead => {
+          const row = tbody2.insertRow();
+          row.className = 'border-b border-slate-700/50';
+          row.innerHTML = `
+            <td class="py-2 font-mono text-xs">${escapeHtml(lead.id)}</td>
+            <td><div class="font-medium">${escapeHtml(lead.name)}</div><div class="text-xs text-gray-400">${escapeHtml(lead.contact)}</div></td>
+            <td>${escapeHtml(lead.service)}</td>
+            <td><span class="px-2 py-0.5 rounded-full text-xs ${lead.status === 'active' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}">${lead.status}</span></td>
+            <td>$${lead.highestBid || 0}</td>
+            <td class="space-x-2">
+              <button class="text-cyan-400 hover:text-cyan-300 text-xs view-lead" data-id="${lead.id}"><i class="fas fa-eye"></i></button>
+              ${!lead.forSale ? `<button class="sell-lead-btn text-amber-400 hover:text-amber-300 text-xs" data-id="${lead.id}" data-name="${escapeHtml(lead.name)}"><i class="fas fa-tag"></i> Sell</button>` : `<span class="text-green-500 text-xs">On sale</span>`}
+            </td>
+          `;
+        });
+        // rebind view and sell buttons
+        document.querySelectorAll('.view-lead').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-id');
+            const lead = leads.find(l => l.id === id);
+            alert(`Lead ${id}\nName: ${lead.name}\nContact: ${lead.contact}\nService: ${lead.service}\nStatus: ${lead.status}\nHighest Bid: $${lead.highestBid || 0}`);
+          });
+        });
+        document.querySelectorAll('.sell-lead-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-id');
+            const name = btn.getAttribute('data-name');
+            let price = prompt(`Set fixed price for lead ${id} (${name}):`, "99");
+            if (price && !isNaN(parseFloat(price))) {
+              markLeadForSale(id, parseFloat(price));
+            } else {
+              alert("Invalid price");
+            }
+          });
+        });
+      }
     }
 
-    // Create a real lead (calls your backend)
+    // Create real lead (same as before)
     async function createRealLead() {
       const name = prompt("Customer name:", "Test Customer");
       if (!name) return;
@@ -224,7 +344,6 @@
       if (!postalCode) return;
       const service = prompt("Service (Roof inspection / Leak check / Insurance claim):", "Roof inspection");
       const city = prompt("City:", "Calgary");
-
       try {
         const res = await fetch('/api/leads', {
           method: 'POST',
@@ -243,12 +362,8 @@
       }
     }
 
-    // Force close the currently active auction (admin)
     async function forceCloseAuction() {
-      if (!activeLeadId) {
-        alert('No active auction to close.');
-        return;
-      }
+      if (!activeLeadId) { alert('No active auction to close.'); return; }
       try {
         const res = await fetch(`/api/auctions/close/${activeLeadId}`, { method: 'POST' });
         const data = await res.json();
@@ -265,27 +380,16 @@
       }
     }
 
-    // Socket.io real-time events
     function initSocket() {
-      socket = io(); // assumes backend is served from same origin
+      socket = io();
       socket.on('auction_started', (data) => {
-        console.log('Auction started', data);
         activeLeadId = data.leadId;
-        refreshDashboard(); // refresh to show new lead
-        // update live auction card
+        refreshDashboard();
         const auctionDiv = document.getElementById('activeAuctionCard');
-        auctionDiv.innerHTML = `
-          <div class="flex justify-between"><span class="text-gray-300">Lead:</span><span class="font-mono">${data.leadId}</span></div>
-          <div class="flex justify-between mt-1"><span>Expires at:</span><span>${new Date(data.expiresAt).toLocaleTimeString()}</span></div>
-          <div class="mt-3 text-xs text-amber-400"><i class="fas fa-hourglass-half"></i> Auction live – refresh for bids</div>
-        `;
+        auctionDiv.innerHTML = `<div class="flex justify-between"><span class="text-gray-300">Lead:</span><span class="font-mono">${data.leadId}</span></div><div class="flex justify-between mt-1"><span>Expires at:</span><span>${new Date(data.expiresAt).toLocaleTimeString()}</span></div><div class="mt-3 text-xs text-amber-400"><i class="fas fa-hourglass-half"></i> Auction live – refresh for bids</div>`;
       });
-      socket.on('new_bid', (data) => {
-        console.log('New bid', data);
-        refreshDashboard(); // simply refresh all data
-      });
+      socket.on('new_bid', () => refreshDashboard());
       socket.on('auction_closed', (data) => {
-        console.log('Auction closed', data);
         activeLeadId = null;
         refreshDashboard();
         const auctionDiv = document.getElementById('activeAuctionCard');
@@ -293,26 +397,17 @@
       });
     }
 
-    function escapeHtml(str) { 
+    function escapeHtml(str) {
       if (!str) return '';
-      return str.replace(/[&<>]/g, function(m){
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-      });
+      return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
     }
 
-    // Event listeners
     document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
     document.getElementById('addRealLead').addEventListener('click', createRealLead);
     document.getElementById('forceCloseBtn').addEventListener('click', forceCloseAuction);
 
-    // Initial load and socket connection
     refreshDashboard();
     initSocket();
-
-    // Optionally poll every 10s as fallback (but socket should handle real-time)
     setInterval(refreshDashboard, 10000);
   </script>
 </body>
